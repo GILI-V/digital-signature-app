@@ -117,6 +117,9 @@ app.post('/sign', async (req, res) => {
     return res.status(500).json({ message: 'שגיאה במהלך החתימה' });
   }
 });
+app.get('/', (req, res) => {
+  res.send('השרת פועל! ברוך הבא :)');
+});
 
 // שלב 3: הצגת קובץ לדפדפן
 app.get('/sign/:id', (req, res) => {
