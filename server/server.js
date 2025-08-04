@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -9,16 +10,19 @@ const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+
+// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Multer setup
 const upload = multer({ dest: 'uploads/' });
 
-const PORT = 5000;
-
-// ✅ שלב 1: העלאה ושליחת קישור במייל
+// שלב 1: העלאה ושליחת מייל עם קישור
 app.post('/upload', upload.single('file'), async (req, res) => {
   const email = req.body.email;
   const file = req.file;
@@ -32,19 +36,19 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   const newPath = path.join(__dirname, 'uploads', `${id}${ext}`);
   fs.renameSync(file.path, newPath);
 
-  const link = `http://localhost:3000/sign/${id}`;
+  const link = `${CLIENT_URL}/sign/${id}`;
 
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'gilivega977@gmail.com',
-        pass: 'rmcp kvbk tyzx vvhn',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS, // ⚠️ חובה להגדיר ב־env
       },
     });
 
     const mailOptions = {
-      from: '"חתימה דיגיטלית" <gilivega977@gmail.com>',
+      from: '"חתימה דיגיטלית" <' + process.env.EMAIL_USER + '>',
       to: email,
       subject: 'חתום על המסמך שלך',
       html: `<p>שלום,</p><p>לחתימה על המסמך שלך:</p><a href="${link}">${link}</a>`,
@@ -58,7 +62,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// ✅ שלב 2: חתימה על הקובץ
+// שלב 2: חתימה על הקובץ
 app.post('/sign', async (req, res) => {
   const { id, name } = req.body;
 
@@ -76,21 +80,19 @@ app.post('/sign', async (req, res) => {
   try {
     const existingPdfBytes = fs.readFileSync(originalPath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-    // ✅ חובה לרשום את fontkit לפני שימוש בפונט מותאם אישית
     pdfDoc.registerFontkit(fontkit);
 
     const fontPath = path.resolve(__dirname, 'david.ttf');
     if (!fs.existsSync(fontPath)) {
       throw new Error(`Font file not found at ${fontPath}`);
     }
+
     const fontBytes = fs.readFileSync(fontPath);
     const customFont = await pdfDoc.embedFont(fontBytes);
 
     const pages = pdfDoc.getPages();
     const lastPage = pages[pages.length - 1];
 
-    // ✅ חתימה
     lastPage.drawText(`חתימה: ${name}`, {
       x: 50,
       y: 50,
@@ -102,9 +104,13 @@ app.post('/sign', async (req, res) => {
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(signedPath, pdfBytes);
 
+    const host = req.headers.host.includes('localhost')
+      ? 'http://localhost:5000'
+      : `https://${req.headers.host.replace(/:\d+$/, '')}`;
+
     return res.json({
       message: 'נחתם בהצלחה!',
-      downloadUrl: `http://localhost:5000/uploads/${id}_signed.pdf`,
+      downloadUrl: `${host}/uploads/${id}_signed.pdf`,
     });
   } catch (err) {
     console.error(err);
@@ -112,7 +118,7 @@ app.post('/sign', async (req, res) => {
   }
 });
 
-// ✅ שלב 3: הצגת הקובץ המקורי לדפדפן
+// שלב 3: הצגת קובץ לדפדפן
 app.get('/sign/:id', (req, res) => {
   const id = req.params.id;
   const filePath = path.join(__dirname, 'uploads', `${id}.pdf`);
@@ -124,6 +130,7 @@ app.get('/sign/:id', (req, res) => {
   res.sendFile(filePath);
 });
 
+// הפעלת השרת
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
