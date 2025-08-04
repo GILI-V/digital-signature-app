@@ -36,7 +36,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   const newPath = path.join(__dirname, 'uploads', `${id}${ext}`);
   fs.renameSync(file.path, newPath);
 
-  const link = `${CLIENT_URL}/sign/${id}`;
+const link = `${process.env.CLIENT_BASE_URL}/sign/${id}`;
 
   try {
     const transporter = nodemailer.createTransport({
