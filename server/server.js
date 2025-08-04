@@ -36,14 +36,14 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   const newPath = path.join(__dirname, 'uploads', `${id}${ext}`);
   fs.renameSync(file.path, newPath);
 
-const link = `${process.env.CLIENT_BASE_URL}/sign/${id}`;
+const link = `${CLIENT_URL}/sign/${id}`;
 
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // ⚠️ חובה להגדיר ב־env
+        pass: process.env.EMAIL_PASS, 
       },
     });
 
