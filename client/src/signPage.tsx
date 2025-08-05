@@ -27,13 +27,15 @@ const SignPage: React.FC = () => {
     setSignedUrl('');
 
     try {
-      const res = await axios.post<SignResponse>(`${process.env.REACT_APP_API_URL}/sign`, {
-        id,
-        name: signature,
-      });
+      const res = await axios.post<SignResponse>(
+        `${process.env.REACT_APP_API_URL}/sign`,
+        {
+          id,
+          name: signature,
+        }
+      );
 
       setMessage(res.data.message);
-
       if (res.data.downloadUrl) {
         setSignedUrl(res.data.downloadUrl);
       }
@@ -46,10 +48,23 @@ const SignPage: React.FC = () => {
   };
 
   return (
-    <div style={{ direction: 'rtl', padding: '2rem', maxWidth: '600px', margin: 'auto' }}>
-      <h2>חתימה על המסמך</h2>
+    <div style={{
+      direction: 'rtl',
+      padding: '2rem',
+      maxWidth: '500px',
+      margin: '4rem auto',
+      fontFamily: 'Arial, sans-serif',
+      border: '1px solid #ddd',
+      borderRadius: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      backgroundColor: '#fafafa',
+    }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>חתימה על המסמך</h2>
+
       <form onSubmit={handleSubmit}>
-        <label htmlFor="signature">נא להזין את שמך המלא:</label>
+        <label htmlFor="signature" style={{ display: 'block', marginBottom: '0.5rem' }}>
+          נא להזין את שמך המלא:
+        </label>
         <input
           id="signature"
           type="text"
@@ -59,23 +74,51 @@ const SignPage: React.FC = () => {
           placeholder="לדוגמה: גילי כהן"
           style={{
             width: '100%',
-            marginTop: '0.5rem',
-            marginBottom: '1rem',
-            padding: '0.5rem',
+            padding: '0.75rem',
             fontSize: '1rem',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+            boxSizing: 'border-box',
           }}
         />
-        <button type="submit" disabled={loading}>
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '0.75rem',
+            fontSize: '1rem',
+            backgroundColor: loading ? '#ccc' : '#007bff',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'background-color 0.3s ease',
+          }}
+        >
           {loading ? 'שולח...' : 'שלח חתימה'}
         </button>
       </form>
 
-      {message && <p style={{ marginTop: '1rem', color: signedUrl ? 'green' : 'red' }}>{message}</p>}
+      {message && (
+        <p style={{
+          marginTop: '1.5rem',
+          color: signedUrl ? 'green' : 'red',
+          textAlign: 'center',
+          fontWeight: 'bold',
+        }}>
+          {message}
+        </p>
+      )}
 
       {signedUrl && (
-        <p>
+        <p style={{ marginTop: '1rem', textAlign: 'center' }}>
           המסמך החתום זמין להורדה:&nbsp;
-          <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+          <a href={signedUrl} target="_blank" rel="noopener noreferrer" style={{
+            color: '#007bff',
+            textDecoration: 'underline',
+          }}>
             הורד כאן
           </a>
         </p>
