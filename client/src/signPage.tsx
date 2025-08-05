@@ -27,7 +27,7 @@ const SignPage: React.FC = () => {
     setSignedUrl('');
 
     try {
-      const res = await axios.post<SignResponse>('http://localhost:5000/sign', {
+      const res = await axios.post<SignResponse>(`${process.env.REACT_APP_API_URL}/sign`, {
         id,
         name: signature,
       });

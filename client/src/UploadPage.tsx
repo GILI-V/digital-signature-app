@@ -1,6 +1,9 @@
 import React, { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const CLIENT_BASE_URL = process.env.REACT_APP_CLIENT_BASE_URL || 'http://localhost:3000';
+
 function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [email, setEmail] = useState('');
@@ -26,7 +29,7 @@ function UploadPage() {
 
     try {
       const response = await axios.post<{ message: string; id: string }>(
-        'http://localhost:5000/upload',
+        `${API_URL}/upload`,
         formData
       );
       setMessage(response.data.message || 'הקובץ נשלח בהצלחה!');
@@ -60,8 +63,12 @@ function UploadPage() {
       {message && <p>{message}</p>}
       {uploadedId && (
         <p>
-          לעבור לחתימה:{" "}
-          <a href={`http://localhost:3000/sign/${uploadedId}`} target="_blank" rel="noopener noreferrer">
+          לעבור לחתימה:{' '}
+          <a
+            href={`${CLIENT_BASE_URL}/sign/${uploadedId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             לחצי כאן
           </a>
         </p>
