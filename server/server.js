@@ -12,22 +12,34 @@ const fontkit = require('@pdf-lib/fontkit');
 const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
+
+// --- CORS Configuration ---
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://digital-signature-app-dun.vercel.app',
+  CLIENT_URL,
+];
 
 app.use(cors({
-  origin: [
-    CLIENT_URL,
-    'https://digital-signature-app-dun.vercel.app',
-  ],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
-
+// --- Middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const upload = multer({ dest: 'uploads/' });
 
+// --- Upload Endpoint ---
 app.post('/upload', upload.single('file'), async (req, res) => {
   const email = req.body.email;
   const file = req.file;
@@ -67,6 +79,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// --- Sign Endpoint ---
 app.post('/sign', async (req, res) => {
   const { id, name } = req.body;
 
@@ -74,16 +87,17 @@ app.post('/sign', async (req, res) => {
     return res.status(400).json({ message: 'חסרים נתונים לחתימה' });
   }
 
-  const originalPath = path.join(__dirname, 'uploads', `${id}.pdf`);
-  const signedPath = path.join(__dirname, 'uploads', `${id}_signed.pdf`);
+  const uploadDir = path.join(__dirname, 'uploads');
+  const originalPath = path.join(uploadDir, `${id}.pdf`);
+  const signedPath = path.join(uploadDir, `${id}_signed.pdf`);
 
-  // בדיקה אם הקובץ קיים (אם לא, נסה למצוא לפי סיומת אחרת)
+  // Check if file exists or find it by matching the ID
   let actualPath = originalPath;
   if (!fs.existsSync(originalPath)) {
-    const files = fs.readdirSync(path.join(__dirname, 'uploads'));
+    const files = fs.readdirSync(uploadDir);
     const match = files.find(f => f.startsWith(id) && f.endsWith('.pdf'));
     if (match) {
-      actualPath = path.join(__dirname, 'uploads', match);
+      actualPath = path.join(uploadDir, match);
     } else {
       return res.status(404).json({ message: 'קובץ לא נמצא' });
     }
@@ -116,10 +130,9 @@ app.post('/sign', async (req, res) => {
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(signedPath, pdfBytes);
 
-const host = process.env.SERVER_URL;
     return res.json({
       message: 'נחתם בהצלחה!',
-      downloadUrl: `${host}/uploads/${id}_signed.pdf`,
+      downloadUrl: `${SERVER_URL}/uploads/${id}_signed.pdf`,
     });
   } catch (err) {
     console.error('שגיאה במהלך החתימה:', err);
@@ -127,10 +140,12 @@ const host = process.env.SERVER_URL;
   }
 });
 
+// --- Home Route ---
 app.get('/', (req, res) => {
   res.send('השרת פועל! ברוך הבא :)');
 });
 
+// --- Start Server ---
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
