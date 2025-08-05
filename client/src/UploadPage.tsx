@@ -2,7 +2,7 @@ import React, { useState, ChangeEvent, FormEvent } from 'react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-const CLIENT_BASE_URL = process.env.REACT_APP_CLIENT_BASE_URL || 'http://localhost:3000';
+const CLIENT_URL = process.env.REACT_APP_CLIENT_BASE_URL || 'http://localhost:3000';
 
 function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -65,7 +65,7 @@ function UploadPage() {
         <p>
           לעבור לחתימה:{' '}
           <a
-            href={`${CLIENT_BASE_URL}/sign/${uploadedId}`}
+            href={`${CLIENT_URL}/sign/${uploadedId}`}
             target="_blank"
             rel="noopener noreferrer"
           >

@@ -14,8 +14,14 @@ const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: [
+    CLIENT_URL,
+    'https://digital-signature-app-dun.vercel.app',
+  ],
+  credentials: true,
 }));
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -110,7 +116,7 @@ app.post('/sign', async (req, res) => {
     const pdfBytes = await pdfDoc.save();
     fs.writeFileSync(signedPath, pdfBytes);
 
-    const host = process.env.SERVER_URL || `http://localhost:${PORT}`;
+const host = process.env.SERVER_URL;
     return res.json({
       message: 'נחתם בהצלחה!',
       downloadUrl: `${host}/uploads/${id}_signed.pdf`,
