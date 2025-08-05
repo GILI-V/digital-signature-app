@@ -42,37 +42,109 @@ function UploadPage() {
   };
 
   return (
-    <div className="upload-page" style={{ direction: 'rtl', padding: '2rem' }}>
-      <h2>העלאת קובץ</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>בחר קובץ PDF:</label>
-          <input type="file" onChange={handleFileChange} accept=".pdf" />
-        </div>
-        <div>
-          <label>כתובת מייל:</label>
-          <input
-            type="email"
-            value={email}
-            placeholder="example@gmail.com"
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <button type="submit">שלח</button>
-      </form>
-      {message && <p>{message}</p>}
-      {uploadedId && (
-        <p>
-          לעבור לחתימה:{' '}
-          <a
-            href={`${CLIENT_BASE_URL}/sign/${uploadedId}`}
-            target="_blank"
-            rel="noopener noreferrer"
+    <div style={{
+      direction: 'rtl',
+      minHeight: '100vh',
+      background: 'linear-gradient(to bottom, #fce4ec, #f8bbd0)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'Heebo, sans-serif',
+    }}>
+      <div style={{
+        backgroundColor: '#ffffff',
+        padding: '3rem',
+        borderRadius: '16px',
+        boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+        width: '100%',
+        maxWidth: '500px',
+        boxSizing: 'border-box'
+      }}>
+        <h2 style={{ textAlign: 'center', color: '#ad1457', marginBottom: '2rem' }}>
+          העלאת קובץ לחתימה
+        </h2>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              בחר קובץ PDF:
+            </label>
+            <input
+              type="file"
+              onChange={handleFileChange}
+              accept=".pdf"
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+              כתובת מייל:
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="example@gmail.com"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                fontSize: '1rem',
+                borderRadius: '8px',
+                border: '1px solid #ccc',
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              fontSize: '1.1rem',
+              backgroundColor: '#ad1457',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: '0.3s'
+            }}
           >
-            לחצי כאן
-          </a>
-        </p>
-      )}
+            שלח
+          </button>
+        </form>
+
+        {message && (
+          <p style={{
+            marginTop: '1.5rem',
+            textAlign: 'center',
+            color: uploadedId ? 'green' : 'red',
+            fontWeight: 'bold'
+          }}>
+            {message}
+          </p>
+        )}
+
+        {uploadedId && (
+          <p style={{ marginTop: '1rem', textAlign: 'center' }}>
+            לעבור לחתימה:&nbsp;
+            <a
+              href={`${CLIENT_BASE_URL}/sign/${uploadedId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: '#ad1457', textDecoration: 'underline' }}
+            >
+              לחצי כאן
+            </a>
+          </p>
+        )}
+      </div>
     </div>
   );
 }
