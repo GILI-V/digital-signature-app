@@ -14,32 +14,14 @@ const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 
-// --- CORS Configuration ---
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://digital-signature-app-dun.vercel.app',
-  CLIENT_URL,
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
-
-// --- Middleware ---
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const upload = multer({ dest: 'uploads/' });
 
-// --- Upload Endpoint ---
+// שלב א: העלאת קובץ ושליחת קישור במייל
 app.post('/upload', upload.single('file'), async (req, res) => {
   const email = req.body.email;
   const file = req.file;
@@ -52,6 +34,16 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   const ext = path.extname(file.originalname);
   const newPath = path.join(__dirname, 'uploads', `${id}${ext}`);
   fs.renameSync(file.path, newPath);
+
+  const metadata = {
+    id,
+    originalName: file.originalname,
+    email,
+    filePath: newPath,
+    fileExtension: ext,
+  };
+  fs.mkdirSync('./metadata', { recursive: true });
+  fs.writeFileSync(`./metadata/${id}.json`, JSON.stringify(metadata));
 
   const link = `${CLIENT_URL}/sign/${id}`;
 
@@ -72,6 +64,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
+    console.log("המייל עם הקובץ נשלח בהצלחה ל:", email);
+
     return res.json({ message: 'המייל נשלח בהצלחה!', id });
   } catch (err) {
     console.error('שגיאה בשליחת מייל:', err);
@@ -79,32 +73,33 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// --- Sign Endpoint ---
+// שלב ב: חתימה על המסמך ושליחה חוזרת במייל
 app.post('/sign', async (req, res) => {
+  console.log('קריאה ל- /sign התקבלה עם:', req.body);
+
   const { id, name } = req.body;
 
   if (!id || !name) {
     return res.status(400).json({ message: 'חסרים נתונים לחתימה' });
   }
 
-  const uploadDir = path.join(__dirname, 'uploads');
-  const originalPath = path.join(uploadDir, `${id}.pdf`);
-  const signedPath = path.join(uploadDir, `${id}_signed.pdf`);
-
-  // Check if file exists or find it by matching the ID
-  let actualPath = originalPath;
-  if (!fs.existsSync(originalPath)) {
-    const files = fs.readdirSync(uploadDir);
-    const match = files.find(f => f.startsWith(id) && f.endsWith('.pdf'));
-    if (match) {
-      actualPath = path.join(uploadDir, match);
-    } else {
-      return res.status(404).json({ message: 'קובץ לא נמצא' });
-    }
+  const metadataPath = path.join(__dirname, 'metadata', `${id}.json`);
+  if (!fs.existsSync(metadataPath)) {
+    return res.status(404).json({ message: 'Metadata not found for this ID' });
   }
 
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+  const originalFilePath = metadata.filePath;
+  const email = metadata.email;
+
+  if (!fs.existsSync(originalFilePath)) {
+    return res.status(404).json({ message: 'קובץ לא נמצא' });
+  }
+
+  const signedFilePath = path.join(path.dirname(originalFilePath), `${id}_signed${metadata.fileExtension}`);
+
   try {
-    const existingPdfBytes = fs.readFileSync(actualPath);
+    const existingPdfBytes = fs.readFileSync(originalFilePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     pdfDoc.registerFontkit(fontkit);
 
@@ -128,11 +123,34 @@ app.post('/sign', async (req, res) => {
     });
 
     const pdfBytes = await pdfDoc.save();
-    fs.writeFileSync(signedPath, pdfBytes);
+    fs.writeFileSync(signedFilePath, pdfBytes);
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"חתימה דיגיטלית" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'המסמך החתום שלך',
+      text: 'שלום, מצורף המסמך שחתמת עליו.',
+      attachments: [
+        {
+          filename: `signed_${metadata.originalName}`,
+          path: signedFilePath,
+        },
+      ],
+    };
+
+    await transporter.sendMail(mailOptions);
 
     return res.json({
-      message: 'נחתם בהצלחה!',
-      downloadUrl: `${SERVER_URL}/uploads/${id}_signed.pdf`,
+      message: 'נחתם ונשלח במייל בהצלחה!',
+      downloadUrl: `${SERVER_URL}/uploads/${path.basename(signedFilePath)}`,
     });
   } catch (err) {
     console.error('שגיאה במהלך החתימה:', err);
@@ -140,12 +158,6 @@ app.post('/sign', async (req, res) => {
   }
 });
 
-// --- Home Route ---
-app.get('/', (req, res) => {
-  res.send('השרת פועל! ברוך הבא :)');
-});
-
-// --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`שרת פעיל על פורט ${PORT}`);
 });
